@@ -1,4 +1,4 @@
-name: Build Pathshala APK
+name: Build Chaudhary Pathshala APK
 on:
   push:
     branches: [ main ]
