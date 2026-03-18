@@ -1,0 +1,67 @@
+name: Build Pathshala APK
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Cordova
+        run: npm install -g cordova@12
+
+      - name: Install Android SDK components
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools" 2>/dev/null | tail -3
+
+      - name: Create Cordova Project
+        run: cordova create PathshalaApp com.chaudhary.pathshala "Chaudhary Pathshala AI"
+
+      - name: Copy project files
+        run: |
+          cp config.xml PathshalaApp/config.xml
+          cp -r www/. PathshalaApp/www/
+
+      - name: Add Android platform and plugins
+        run: |
+          cd PathshalaApp
+          cordova platform add android@12 --save
+          cordova plugin add cordova-plugin-inappbrowser --save
+          cordova plugin add cordova-plugin-whitelist --save
+
+      - name: Build APK
+        run: |
+          cd PathshalaApp
+          export JAVA_HOME=$JAVA_HOME_17_X64
+          cordova build android --debug
+
+      - name: Copy APK to output
+        run: |
+          mkdir -p output
+          find PathshalaApp -name "*.apk" -type f -exec cp {} output/ \;
+          ls -la output/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChaudharyPathshala-APK
+          path: output/
+          retention-days: 30
